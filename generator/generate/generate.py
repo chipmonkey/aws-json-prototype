@@ -13,7 +13,7 @@ import click
 import names
 
 
-def _generateValidJSON():
+def _generate_valid_json():
     fieldmask = 0
     while fieldmask == 0:
         fieldmask = random.getrandbits(4)
@@ -30,36 +30,44 @@ def _generateValidJSON():
         last_name = names.get_last_name()
         rdict['last_name'] = last_name
     if fieldmask & 8:
-        zip_code = random.randint(10000, 99999)  # Incomplete coverage; generates false zips
+        # Incomplete coverage; generates false zips
+        zip_code = random.randint(10000, 99999)
         rdict['zip_code'] = zip_code
 
-    print(rdict)
-    
     return rdict
 
 
-def _generateInvalidJSON():
-    return {}  # This suffices, but we can do better someday
+def _generate_invalid_json():
+    return {'nonsense': True}  # This suffices, but we can do better someday
+
 
 @click.command()
-@click.option('--count', default=1, help='Number of records to generate')
-@click.option('--pinvalid', default=0, required=False, type=float,
+@click.option('-c', '--count', default=10,
+              help='Number of records to generate')
+@click.option('-p', '--pinvalid', default=0.1, required=False, type=float,
               help='Percent of BAD records to target')
 def generate(count, pinvalid):
     """ Generates {count} JSON results with {pinvalid} percent invalid fields
     """
 
-    validCount = int((1.0-pinvalid) * count)
-    invalidCount = count - validCount
+    valid_count = int((1.0 - pinvalid) * count)
+    invalid_count = count - valid_count
 
-    valid = [_generateValidJSON() for i in range(validCount)]
-    invalid = [_generateInvalidJSON() for i in range(invalidCount)]
+    result = [_generate_valid_json() for i in range(valid_count)]
+    invalid = [_generate_invalid_json() for i in range(invalid_count)]
 
-    valid.extend(invalid)
+    if result and invalid:
+        result.extend(invalid)
+    elif invalid:
+        # result = json.dumps(invalid)
+        result = invalid
 
-    return json.dumps(valid.extend(invalid))
-    
+    rvalue = json.dumps(result)
+    print(rvalue)
+    return rvalue
+
 
 if __name__ == '__main__':
-    result = generate()
-    print(result)
+# pylint: disable=no-value-for-parameter
+    generate()
+# pylint: enable=no-value-for-parameter

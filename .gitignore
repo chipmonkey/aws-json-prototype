@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Local Changes:
+requirements.txt
+test-requirements.txt
