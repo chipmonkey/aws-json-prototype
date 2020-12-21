@@ -12,7 +12,6 @@ help:
 	@echo "'make run' to run local webserver version"
 	@echo "'make build' to, um, build"
 	@echo "'make test' to run tests"
-	@echo "WARNING: Will behave oddly if run from inside a python venv"
 
 apt:
 	sudo apt install awscli python3-pytest
@@ -33,14 +32,16 @@ test-install: install test-requirements.txt
 reqs: requirements.txt $(outputs)
 
 %.txt: %.in
-	pip-compile -v --output-file $@ $<
+	( . ./venv/bin/activate; \
+	pip-compile -v --output-file $@ $< ; )
 
 check:
 	@which pip-compile > /dev/null
 	@which pytest > /dev/null
 
-clean: check
+clean:
 	- rm *.txt
+	- rm -rf venv
 
 venv:
 	python3 -m venv venv
@@ -49,13 +50,16 @@ develop:
 	. ./venv/bin/activate
 
 local:
-	python -m http.server
+	( . ./venv/bin/activate; \
+	python -m http.server; )
 
 test: test-install lint
-	pytest
+	( . ./venv/bin/activate; \
+	pytest )
 
 lint:
-	pylint generate/
+	( . ./venv/bin/activate; \
+	pylint generate/ )
 
 pep8:
 	autopep8 generate/ --recursive --in-place --aggressive --pep8-passes 2000 --verbose

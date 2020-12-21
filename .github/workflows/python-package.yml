@@ -1,0 +1,30 @@
+# Thank you: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python package
+
+on:
+  push:
+    branches:
+      - $default-branch
+      - 'feature/**'
+# Should probably match all branches, but we're selective here mostly as an example
+# This should be used to force ONLY "feature" branches to pass test for merge to master
+  pull_request:
+    branches:
+      - $default-branch
+      - 'feature/**'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+        architecture: 'x64'
+    - name: Run tests
+      run: make test
