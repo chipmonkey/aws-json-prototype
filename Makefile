@@ -3,7 +3,7 @@
 # supports 'make test' and 'make clean' targets
 # Thanks https://lackof.org/taggart/hacking/make-example/
 
-TARGETS = generator
+TARGETS = generator parser
 # the sets of directories to do various things in
 TESTDIRS = $(TARGETS:%=test-%)
 CLEANDIRS = $(DIRS:%=clean-%)

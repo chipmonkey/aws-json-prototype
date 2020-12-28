@@ -21,6 +21,12 @@ def test_generate():
     assert result.exit_code == 0
     assert json.loads(result.output)
 
+def test_cli_invalid_only():
+    runner = CliRunner()
+    result = runner.invoke(generate.generate, ['--count', 10, '-p', '1'])
+    assert result.exit_code == 0
+    assert json.loads(result.output)
+
 def test_main():
     """Not testing __main__ for cli
     the proper way is to mock generate() and assert it was called

@@ -1,0 +1,41 @@
+from parser import parser
+
+from click.testing import CliRunner
+import json
+import os
+
+VALID_KEYS = ['first_name', 'middle_name', 'last_name', 'zip_code']
+
+def test_generate_filename():
+    result = parser.generate_filename('.test')
+    print(f"generated filename: {result}")
+    assert len(result) > 13  # Basic timestamp plus suffix
+    assert isinstance(result, str)
+
+
+def test_cli_parse_success():
+    runner = CliRunner()
+    test_folder = os.path.dirname(os.path.abspath(__file__))
+    test_file = test_folder + '/good_sample.json'
+    print(f"testing with test file: {test_file}")
+    result = runner.invoke(parser.parse, ['-f', test_file])
+    assert result.exit_code == 0
+
+def test_cli_parse_failure():
+    runner = CliRunner()
+    test_folder = os.path.dirname(os.path.abspath(__file__))
+    test_file = test_folder + '/fail_sample.json'
+    print(f"testing with test file: {test_file}")
+    result = runner.invoke(parser.parse, ['-f', test_file])
+    assert result.exit_code == 0
+
+def test_cli_parse_stdin():
+    runner = CliRunner()
+    result = runner.invoke(parser.parse, input='{"middle_name": "happy"}')
+    assert result.exit_code == 0
+
+def test_main():
+    """Not testing __main__ for cli
+    the proper way is to mock generate() and assert it was called
+    """
+    assert(True)

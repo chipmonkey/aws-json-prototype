@@ -56,12 +56,12 @@ local:
 
 test: test-install lint
 	( . ./venv/bin/activate; \
-	coverage run --source=./generate/ -m pytest .; \
+	coverage run --source=./parser/ -m pytest .; \
 	coverage report -m --fail-under=100; )
 
 lint:
 	( . ./venv/bin/activate; \
-	pylint generate/ )
+	pylint parser/ )
 
 pep8:
-	autopep8 generate/ --recursive --in-place --aggressive --pep8-passes 2000 --verbose
+	autopep8 parser/ --recursive --in-place --aggressive --pep8-passes 2000 --verbose
