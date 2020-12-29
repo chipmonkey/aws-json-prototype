@@ -1,4 +1,4 @@
-.PHONY: init help test reqs
+.PHONY: init help test reqs build
 
 objects = $(wildcard *.in)
 outputs := $(objects:.in=.txt)
@@ -10,7 +10,7 @@ help:
 	@echo "EVERYTHING BELOW IS NOT IMPLEMENTED:"
 # @echo "'make config' to change defaults"
 # @echo "'make run' to run local webserver version"
-# @echo "'make build' to, um, build"
+	@echo "'make build' to, um, build"
 	@echo "'make test' to run tests"
 
 apt:
@@ -65,3 +65,7 @@ lint:
 
 pep8:
 	autopep8 parser/ --recursive --in-place --aggressive --pep8-passes 2000 --verbose
+
+build: requirements.txt
+	mkdir -p build
+	pip install --target build/package -r requirements.txt

@@ -7,9 +7,11 @@ Usage: python generate.py --help
 """
 
 import datetime
-import tempfile
 import json
+import os
 import sys
+import tempfile
+import uuid
 
 import click
 
@@ -21,13 +23,33 @@ def generate_filename(suffix):
     Prefix with timestamp
     Suffix (str) as parameter
     """
-    prefix = datetime.datetime.now().strftime('%y%m%d_%H%M%S')
-    tfile = tempfile.NamedTemporaryFile(prefix=prefix)
+    prefix = tempfile.gettempdir() + os.path.sep + datetime.datetime.now().strftime('%y%m%d_%H%M%S')
+    rvalue = prefix + '_' + str(uuid.uuid4()) + suffix
 
-    rvalue = tfile.name + suffix
     print(f'Generated filename: {rvalue}')
     return rvalue
 
+def _generate_magic_keys(my_dict):
+
+    for my_key, my_value in my_dict.items():
+        if my_key in search_keys and isinstance(my_value, str):
+            yield {my_key: my_value}
+        elif my_key in search_keys and not isinstance(my_value, str):
+            print(f"""{my_key} was found, but value was {type(my_value)}"""
+                    """(not str) - excluding without error""")
+        elif isinstance(my_value, list):
+            for listitem in my_value:
+                for rvalue in _generate_magic_keys(listitem):
+                    yield rvalue
+
+def _process_values(my_dict):
+    print("Processing values")
+    print(my_dict)
+
+def _archive_raw(raw_object, suffix):
+    filename = generate_filename(suffix)
+    with open(filename, 'w') as file:
+        file.write(raw_object)
 
 def lambda_handler(event, _context):
     """ Main handler for AWS Lambda
@@ -35,24 +57,6 @@ def lambda_handler(event, _context):
     Parses the JSON to search for the required fields (handling those separately)
     Archives the raw JSON
     """
-
-    def _get_magic_key(my_dict):
-        # Thanks https://stackoverflow.com/a/14059645/1786204
-        results = {}
-        for my_key in search_keys:
-            if my_key in my_dict:
-                results[my_key] = my_dict[my_key]
-
-        return results
-
-    def _process_values(my_dict):
-        print("Processing values")
-        print(my_dict)
-
-    def _archive_raw(raw_object, suffix):
-        filename = generate_filename(suffix)
-        with open(filename, 'w') as file:
-            file.write(raw_object)
 
 
     for record in event['Records']:
@@ -68,14 +72,32 @@ def lambda_handler(event, _context):
         #     my_json = record
         my_json = record
 
+        status_code = 200
+
         try:
-            payload = json.loads(my_json, object_hook=_get_magic_key)
+            payload = list(_generate_magic_keys(json.loads(my_json)))
+            print(f'payload: {payload}')
             _process_values(payload)
             _archive_raw(my_json, '.json')
         except Exception as error:  # pylint: disable=W0703
             print(f"JSON load failed with error: {str(error)}")
-            _archive_raw(my_json, '.error')
+            try:
+                _archive_raw(my_json, '.error')
+            except Exception as archive_error:  # pylint: disable=W0703
+                print(f"Failed to archive file: {str(archive_error)}")
+            status_code = 500
 
+        response = {
+            'statusCode': status_code,
+            'headers': {
+                'Content-Type': 'application/json',
+            },
+            'body': json.dumps(payload)
+        }
+
+        print(f"response: {response}")
+
+        return response
 
 
 @click.command()
