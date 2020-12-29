@@ -32,17 +32,19 @@ test-install: install test-requirements.txt
 
 reqs: requirements.txt $(outputs)
 
-%.txt: %.in
+%.txt: %.in install
 	( . ./venv/bin/activate; \
 	pip-compile -v --output-file $@ $< ; )
 
 check:
-	@which pip-compile > /dev/null
-	@which pytest > /dev/null
+	( . ./venv/bin/activate && \
+	which pip-compile > /dev/null && \
+	which pytest > /dev/null ; )
 
 clean:
 	- rm *.txt
 	- rm -rf venv
+	- rm -rf build
 
 venv:
 	python3 -m venv venv
@@ -66,6 +68,24 @@ lint:
 pep8:
 	autopep8 parser/ --recursive --in-place --aggressive --pep8-passes 2000 --verbose
 
-build: requirements.txt
+build: install
 	mkdir -p build
-	pip install --target build/package -r requirements.txt
+	pip install --upgrade --target build/package -r requirements.txt
+	( cd build && \
+	zip -r lambda_deployfile.zip ./package/)
+	( cd parser && \
+	zip -g ../build/lambda_deployfile.zip parser.py )
+
+deploy-aws:
+	- aws iam create-role --role-name lambda-ex --assume-role-policy-document file://trust-policy.json
+
+	- aws iam attach-role-policy --role-name lambda-ex \
+	--policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+# Oh goodness the hard-coding must not survive... but this works for v0
+	aws lambda create-function --function-name chipmonkeyTestLambda --zip-file fileb://build/lambda_deployfile.zip \
+	--runtime python3.8 --handler parser.py/lambda_handler --role arn:aws:iam::726253464449:role/lambda-ex
+#	aws lambda update-function-code --function-name chipmonkeyTestLambda --zip-file fileb://build/lambda_deployfile.zip
+
+clean-aws:
+	aws lambda delete-function --function-name chipmonkeyTestLambda
