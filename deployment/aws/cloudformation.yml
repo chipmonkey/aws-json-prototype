@@ -1,0 +1,33 @@
+Resources:
+  JSONArchive:
+    Type: AWS::S3::Bucket
+  JSONLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: parser.py/lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.8
+      Code:
+        ZipFile: fileb://../../parser/build/lambda_deployfile.zip
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+  HTTPApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: Lambda Proxy
+      Description: Lambda proxy using quick create
+      ProtocolType: HTTP
+#      Target: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:JSONLambda/invocations
+      Target: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:726253464449:function:JSONLambda/invocations
+    DependsOn:
+      - JSONLambda
