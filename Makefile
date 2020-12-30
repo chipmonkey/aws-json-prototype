@@ -20,3 +20,6 @@ $(CLEANDIRS):
 .PHONY: subdirs $(TESTDIRS)
 .PHONY: subdirs $(CLEANDIRS)
 .PHONY: all install clean test
+
+config:
+	@./configure.sh

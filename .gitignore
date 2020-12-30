@@ -133,3 +133,4 @@ requirements.txt
 test-requirements.txt
 apt
 deploy/
+myconfig

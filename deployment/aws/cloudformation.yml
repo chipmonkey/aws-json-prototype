@@ -1,14 +1,6 @@
 Resources:
   JSONArchive:
     Type: AWS::S3::Bucket
-  JSONLambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: parser.py/lambda_handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Runtime: python3.8
-      Code:
-        ZipFile: fileb://../../parser/build/lambda_deployfile.zip
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -21,6 +13,13 @@ Resources:
             - lambda.amazonaws.com
           Action:
           - sts:AssumeRole
+  JSONLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: parser.py/lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.8
+      Code: lambda_deployfile.zip
   HTTPApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
