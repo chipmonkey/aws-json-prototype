@@ -1,11 +1,12 @@
 # aws-json-prototype
-Chip's playground for building an AWS API Endpoint for Manifold
+Chip's playground for building an AWS API Endpoint for fun and learning
 
 # QuickStart
 
 ## SuperQuick:
 Hopefully this will do it:
 ```
+make init
 make config
 make deploy
 ```

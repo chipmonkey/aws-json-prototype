@@ -41,8 +41,9 @@ check:
 	@which pytest > /dev/null
 
 clean:
-	- rm *.txt
+	- rm -f *.txt
 	- rm -rf venv
+	- rm -f apt
 
 venv:
 	python3 -m venv venv
@@ -62,6 +63,8 @@ test: test-install lint
 lint:
 	( . ./venv/bin/activate; \
 	pylint generate/ )
+
+build:
 
 pep8:
 	autopep8 generate/ --recursive --in-place --aggressive --pep8-passes 2000 --verbose

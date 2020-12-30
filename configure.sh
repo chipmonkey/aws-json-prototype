@@ -46,3 +46,4 @@ do
 done
 
 echo "s3bucket=$s3bucket" > myconfig
+aws s3 mb s3://$s3bucket

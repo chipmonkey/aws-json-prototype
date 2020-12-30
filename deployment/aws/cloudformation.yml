@@ -1,6 +1,11 @@
+Parameters:
+  S3BucketName:
+    Type: String
 Resources:
   JSONArchive:
     Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${S3BucketName}-json
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -16,17 +21,20 @@ Resources:
   JSONLambda:
     Type: AWS::Lambda::Function
     Properties:
-      Handler: parser.py/lambda_handler
+      Handler: parser.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: python3.8
-      Code: lambda_deployfile.zip
-  HTTPApi:
+      Code:
+        S3Bucket: !Sub ${S3BucketName}
+        S3Key: lambda_deployfile.zip
+      Environment:
+        Variables:
+          S3_BUCKET: !Sub ${S3BucketName}-json
+  JSONApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: Lambda Proxy
-      Description: Lambda proxy using quick create
+      Name: HTTP JSON Lambda API
       ProtocolType: HTTP
-#      Target: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:JSONLambda/invocations
-      Target: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:726253464449:function:JSONLambda/invocations
+      Target: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:JSONLambda/invocations
     DependsOn:
       - JSONLambda

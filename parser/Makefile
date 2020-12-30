@@ -42,9 +42,10 @@ check:
 	which pytest > /dev/null ; )
 
 clean:
-	- rm *.txt
+	- rm -f *.txt
 	- rm -rf venv
 	- rm -rf build
+	- rm -f apt
 
 venv:
 	python3 -m venv venv
@@ -70,9 +71,10 @@ pep8:
 
 build: install
 	mkdir -p build
-	pip install --upgrade --target build/package -r requirements.txt
-	( cd build && \
-	zip -r lambda_deployfile.zip ./package/)
+	( . ./venv/bin/activate; \
+	pip install --upgrade --target build/package -r requirements.txt )
+	( cd build/package && \
+	zip -r ../lambda_deployfile.zip * )
 	( cd parser && \
 	zip -g ../build/lambda_deployfile.zip parser.py )
 
