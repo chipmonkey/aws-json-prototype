@@ -8,13 +8,14 @@ Usage: python generate.py --help
 
 import datetime
 import json
+import logging
 import os
 import sys
 import tempfile
 import uuid
-
 import click
 
+log = logging.getLogger('parser')
 search_keys = ['first_name', 'middle_name', 'last_name', 'zip_code']
 
 def generate_filename(suffix):
@@ -23,81 +24,99 @@ def generate_filename(suffix):
     Prefix with timestamp
     Suffix (str) as parameter
     """
-    prefix = tempfile.gettempdir() + os.path.sep + datetime.datetime.now().strftime('%y%m%d_%H%M%S')
+    prefix = tempfile.gettempdir() + os.path.sep + datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     rvalue = prefix + '_' + str(uuid.uuid4()) + suffix
 
-    print(f'Generated filename: {rvalue}')
+    log.info('Generated filename: %s', rvalue)
     return rvalue
 
 def _generate_magic_keys(my_dict):
+
+    log.info("generating from: %s: %s", type(my_dict), my_dict)
 
     for my_key, my_value in my_dict.items():
         if my_key in search_keys and isinstance(my_value, str):
             yield {my_key: my_value}
         elif my_key in search_keys and not isinstance(my_value, str):
-            print(f"""{my_key} was found, but value was {type(my_value)}"""
-                    """(not str) - excluding without error""")
+            log.warning("""%s was found, but value was (%s)"""
+                    """(not str) - excluding without error""", my_key, type(my_value))
         elif isinstance(my_value, list):
             for listitem in my_value:
                 for rvalue in _generate_magic_keys(listitem):
                     yield rvalue
 
 def _process_values(my_dict):
-    print("Processing values")
-    print(my_dict)
+    """Placeholder for doing things like writing to a database
+    """
+    log.info("Processing values")
+    log.info(my_dict)
 
 def _archive_raw(raw_object, suffix):
     filename = generate_filename(suffix)
     with open(filename, 'w') as file:
-        file.write(raw_object)
+        if isinstance(raw_object, dict):
+            json.dump(raw_object, file)
+        else:
+            file.write(raw_object)
+
+def _aws_unpack(inthing):
+    """ AWS Does some weirdness like escaping quotes in the payload which confuses json.
+    Make uniform all AWS specific pre-processing here.
+    If we wanted to make this cross platform, we could implement a google or azure version as well.
+    """
+    return inthing
+
 
 def lambda_handler(event, _context):
     """ Main handler for AWS Lambda
     Takes an input event as JSON
     Parses the JSON to search for the required fields (handling those separately)
+    Processes whatever needs processing
     Archives the raw JSON
     """
 
+    if isinstance(event, dict):
+        if 'body' in event:
+            my_json = _aws_unpack(event['body'])
+        else:
+            my_json = event
+    else:
+        my_json = json.loads(event)
 
-    for record in event['Records']:
-        # Leaving this commented for future reference if we use Kinesis:
-        # Kinesis example
-        # via https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis-create-package.html
-        # import base64
-        # Kinesis data is base64 encoded so decode here
-        # if 'kinesis' in record:
-        #     my_json = base64.b64decode(record["kinesis"]["data"])
-        #     print("Decoded payload: " + str(payload))
-        # else:
-        #     my_json = record
-        my_json = record
+    # Leaving this commented for future reference if we use Kinesis:
+    # Kinesis example
+    # via https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis-create-package.html
+    # import base64
+    # Kinesis data is base64 encoded so decode here
+    # if 'kinesis' in record:
+    #     my_json = base64.b64decode(record["kinesis"]["data"])
+    #     print("Decoded payload: " + str(payload))
+    # else:
+    #     my_json = record
 
-        status_code = 200
+    status_code = 200
 
+    try:
+        payload = list(_generate_magic_keys(my_json))
+        _process_values(payload)
+        _archive_raw(my_json, '.json')
+    except Exception as error:  # pylint: disable=broad-except
+        log.error("JSON load failed with error: %s", str(error))
         try:
-            payload = list(_generate_magic_keys(json.loads(my_json)))
-            print(f'payload: {payload}')
-            _process_values(payload)
-            _archive_raw(my_json, '.json')
-        except Exception as error:  # pylint: disable=W0703
-            print(f"JSON load failed with error: {str(error)}")
-            try:
-                _archive_raw(my_json, '.error')
-            except Exception as archive_error:  # pylint: disable=W0703
-                print(f"Failed to archive file: {str(archive_error)}")
-            status_code = 500
+            _archive_raw(my_json, '.error')
+        except Exception as archive_error:  # pylint: disable=broad-except
+            log.error("Failed to archive file: %s", str(archive_error))
+        status_code = 500
 
-        response = {
-            'statusCode': status_code,
-            'headers': {
-                'Content-Type': 'application/json',
-            },
-            'body': json.dumps(payload)
-        }
+    response = {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+        },
+        'body': json.dumps(payload)
+    }
 
-        print(f"response: {response}")
-
-        return response
+    return response
 
 
 @click.command()
@@ -111,12 +130,12 @@ def parse(filename):
 
     if filename:
         with open(filename) as my_file:
-            data = my_file.readlines()
+            data = json.load(my_file)
     else:
-        data = sys.stdin.readlines()
+        data = json.load(sys.stdin)
 
     event = {}  # Simulate AWS Lambda Payload
-    event['Records'] = data
+    event['body'] = data
 
     lambda_handler(event, None)
 

@@ -13,7 +13,6 @@ def test_generate_filename():
     assert len(result) > 13  # Basic timestamp plus suffix
     assert isinstance(result, str)
 
-
 def test_cli_parse_success():
     runner = CliRunner()
     test_folder = os.path.dirname(os.path.abspath(__file__))
