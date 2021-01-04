@@ -9,6 +9,23 @@ Resources:
     Properties:
       BucketName: !Sub ${S3BucketName}-json
 
+  JSONArchivePolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      LambdaExecutionRole
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action:
+            - s3:PutObject
+            - s3:PutObjectAcl
+          Effect: Allow
+          Resource: !Join [ '', [!GetAtt JSONArchive.Arn, '/*' ] ]
+          Principal:
+            AWS: !GetAtt LambdaExecutionRole.Arn
+      Bucket: !Ref JSONArchive
+
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -30,6 +47,7 @@ Resources:
             Action:
             - logs:*
             Resource: arn:aws:logs:*:*:*
+
 # AWSLambdaBasicExecutionRole
     
   ApiGatewayExecutionRole:

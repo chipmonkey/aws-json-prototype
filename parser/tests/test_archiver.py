@@ -19,3 +19,9 @@ def test_archive_str():
         archiver.archive_raw('hello world', '.test')
         m.assert_called_once()
 
+@patch('parser.archiver.FILE_MODE', 'S3')
+@patch('boto3.client')
+def test_archive_s3(put_object):
+    with patch.dict('os.environ', {"AWS_REGION": "localtest"}, clear=True):
+        archiver.archive_raw('boto3 test', '.test')
+        put_object.assert_called_once()
