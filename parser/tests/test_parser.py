@@ -1,17 +1,11 @@
 from parser import parser
 
 from click.testing import CliRunner
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import json
 import os
 
 VALID_KEYS = ['first_name', 'middle_name', 'last_name', 'zip_code']
-
-def test_generate_filename():
-    result = parser.generate_filename('.test')
-    print(f"generated filename: {result}")
-    assert len(result) > 13  # Basic timestamp plus suffix
-    assert isinstance(result, str)
 
 def test_handler_direct_str():
     result = parser.lambda_handler('{"first_name": "chip"}', None)
@@ -63,21 +57,22 @@ def test_cli_parse_aws_format():
     test_file = test_folder + '/aws_payload_sample.json'
     print(f"testing with test file: {test_file}")
     result = runner.invoke(parser.parse, ['-f', test_file])
+    assert result.exit_code == 0
 
 def test_cli_parse_stdin():
     runner = CliRunner()
     result = runner.invoke(parser.parse, input='{"middle_name": "happy"}')
     assert result.exit_code == 0
 
-def test_archive_fail():
-    with patch('parser.parser._archive_raw', side_effect=Exception('fake archive error')):
-        runner = CliRunner()
-        result = runner.invoke(parser.parse, input='{"middle_name": "happy"}')
-        assert result.exit_code == 0
+@patch('parser.parser._process_values', side_effect=Exception('fake parser error'))
+@patch('parser.parser.archive_raw', side_effect=Exception('fake archive error'))
+def test_json_archive_failures(mockprocess, mockarchive):
+    runner = CliRunner()
+    result = runner.invoke(parser.parse, input='{"middle_name": "happy"}')
+    mockprocess.assert_called_once()
+    mockarchive.assert_called_once()
+    assert result.exit_code == 0
 
-def test_archive_str():
-    result = parser._archive_raw('hello world', '.test')
-    
 
 def test_main():
     """Not testing __main__ for cli

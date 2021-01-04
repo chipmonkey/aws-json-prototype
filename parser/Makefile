@@ -76,7 +76,7 @@ build: install
 	( cd build/package && \
 	zip -r ../lambda_deployfile.zip * )
 	( cd parser && \
-	zip -g ../build/lambda_deployfile.zip parser.py )
+	zip -g ../build/lambda_deployfile.zip *.py )
 
 deploy-aws:
 	- aws iam create-role --role-name lambda-ex --assume-role-policy-document file://trust-policy.json

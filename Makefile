@@ -41,3 +41,6 @@ apt:
 
 config: apt
 	@./configure.sh
+
+deploy:
+	( cd ./deployment/aws && ./runme.sh )
