@@ -1,0 +1,127 @@
+Parameters:
+  S3BucketName:
+    Type: String
+
+Resources:
+
+  JSONArchive:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${S3BucketName}-json
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+# AWSLambdaBasicExecutionRole
+    
+  ApiGatewayExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+            - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: JSONApiAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "lambda:*"
+                Resource: !GetAtt JSONLambda.Arn
+
+  JSONLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: parser.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.8
+      Code:
+        S3Bucket: !Sub ${S3BucketName}
+        S3Key: lambda_deployfile.zip
+      Environment:
+        Variables:
+          S3_BUCKET: !Sub ${S3BucketName}-json
+
+  JSONApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: HTTP JSON Lambda API
+      ProtocolType: HTTP
+      # Target: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:JSONLambda/invocations
+    DependsOn:
+      - JSONLambda
+
+  JSONApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref JSONApi
+      Description: Main Integration
+      IntegrationMethod: POST
+      IntegrationType: AWS_PROXY
+      PayloadFormatVersion: "2.0"
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JSONLambda.Arn}/invocations"
+      CredentialsArn: !GetAtt ApiGatewayExecutionRole.Arn
+
+  # AWS::Lambda::Permission needed?  Using IAM for now.
+
+  JSONApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DependsOn:
+      - JSONApi
+      - JSONLambda
+      - JSONApiIntegration
+    Properties:
+      ApiId: !Ref JSONApi
+      RouteKey: POST /lambda
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref JSONApiIntegration
+
+  JSONApiDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - JSONApi
+      - JSONApiRoute
+    Properties:
+      ApiId: !Ref JSONApi
+
+  JSONApiDefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      DeploymentId: !Ref JSONApiDeployment
+      ApiId: !Ref JSONApi
+      StageName: "$default"
+
+# Logging
+
+  JSONApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: JSONApiLogGroup
+      RetentionInDays: 90
