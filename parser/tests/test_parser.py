@@ -13,6 +13,18 @@ def test_generate_filename():
     assert len(result) > 13  # Basic timestamp plus suffix
     assert isinstance(result, str)
 
+def test_handler_direct_str():
+    result = parser.lambda_handler('{"first_name": "chip"}', None)
+    assert isinstance(result, dict)
+
+def test_handler_direct_nobody():
+    result = parser.lambda_handler({"first_name": "chip"}, None)
+    assert isinstance(result, dict)
+
+def test_generate_magic_keys_str():
+    result = list(parser._generate_magic_keys(str('{"first_name": "chip"}')))
+    assert result == [{'first_name': 'chip'}]
+
 def test_cli_parse_success():
     runner = CliRunner()
     test_folder = os.path.dirname(os.path.abspath(__file__))
@@ -45,6 +57,13 @@ def test_cli_parse_warn_weird():
     result = runner.invoke(parser.parse, ['-f', test_file])
     assert result.exit_code == 0
 
+def test_cli_parse_aws_format():
+    runner = CliRunner()
+    test_folder = os.path.dirname(os.path.abspath(__file__))
+    test_file = test_folder + '/aws_payload_sample.json'
+    print(f"testing with test file: {test_file}")
+    result = runner.invoke(parser.parse, ['-f', test_file])
+
 def test_cli_parse_stdin():
     runner = CliRunner()
     result = runner.invoke(parser.parse, input='{"middle_name": "happy"}')
@@ -55,6 +74,10 @@ def test_archive_fail():
         runner = CliRunner()
         result = runner.invoke(parser.parse, input='{"middle_name": "happy"}')
         assert result.exit_code == 0
+
+def test_archive_str():
+    result = parser._archive_raw('hello world', '.test')
+    
 
 def test_main():
     """Not testing __main__ for cli

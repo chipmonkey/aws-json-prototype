@@ -16,6 +16,7 @@ import uuid
 import click
 
 log = logging.getLogger('parser')
+log.setLevel(logging.INFO)
 search_keys = ['first_name', 'middle_name', 'last_name', 'zip_code']
 
 def generate_filename(suffix):
@@ -32,7 +33,10 @@ def generate_filename(suffix):
 
 def _generate_magic_keys(my_dict):
 
-    log.info("generating from: %s: %s", type(my_dict), my_dict)
+    print("generating from: %s: %s", type(my_dict), my_dict)
+
+    if isinstance(my_dict, str):
+        my_dict = json.loads(my_dict)
 
     for my_key, my_value in my_dict.items():
         if my_key in search_keys and isinstance(my_value, str):
@@ -83,6 +87,8 @@ def lambda_handler(event, _context):
     else:
         my_json = json.loads(event)
 
+    log.info("processing: %s (of type: %s)", my_json, type(my_json))
+
     # Leaving this commented for future reference if we use Kinesis:
     # Kinesis example
     # via https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis-create-package.html
@@ -108,12 +114,13 @@ def lambda_handler(event, _context):
             log.error("Failed to archive file: %s", str(archive_error))
         status_code = 500
 
+    body = json.dumps(payload) if isinstance(payload, dict) else payload
     response = {
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'application/json',
         },
-        'body': json.dumps(payload)
+        'body': json.dumps(body)
     }
 
     return response
@@ -137,9 +144,11 @@ def parse(filename):
     event = {}  # Simulate AWS Lambda Payload
     event['body'] = data
 
-    lambda_handler(event, None)
+    parse_result = lambda_handler(event, None)
 
-    return 0
+    print(parse_result)
+
+    return parse_result
 
 
 if __name__ == '__main__':
