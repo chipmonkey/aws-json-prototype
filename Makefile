@@ -41,3 +41,7 @@ apt:
 
 config: apt
 	@./configure.sh
+
+deploy:
+	( cd ./parser && $(MAKE) deploy-aws )
+	( cd ./deployment/aws && ./deploy.sh )

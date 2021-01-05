@@ -3,33 +3,26 @@ first_name, middle_name, last_name, and zip_code
 Note: properties are individually optional.  At least one makes a valid sample.
 Note: Gracefully handle bad data.
 
-Usage: python generate.py --help
+Usage: python parser.py --help
 """
 
-import datetime
 import json
 import logging
 import os
 import sys
-import tempfile
-import uuid
+
 import click
+
+if 'AWS_REGION' in os.environ:
+    from archiver import archive_raw  # pylint: disable=import-error
+else:
+    from .archiver import archive_raw
+
 
 log = logging.getLogger('parser')
 log.setLevel(logging.INFO)
 search_keys = ['first_name', 'middle_name', 'last_name', 'zip_code']
 
-def generate_filename(suffix):
-    """ Generate a temporary filename
-    For the moment, where is not important.
-    Prefix with timestamp
-    Suffix (str) as parameter
-    """
-    prefix = tempfile.gettempdir() + os.path.sep + datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    rvalue = prefix + '_' + str(uuid.uuid4()) + suffix
-
-    log.info('Generated filename: %s', rvalue)
-    return rvalue
 
 def _generate_magic_keys(my_dict):
 
@@ -54,14 +47,6 @@ def _process_values(my_dict):
     """
     log.info("Processing values")
     log.info(my_dict)
-
-def _archive_raw(raw_object, suffix):
-    filename = generate_filename(suffix)
-    with open(filename, 'w') as file:
-        if isinstance(raw_object, dict):
-            json.dump(raw_object, file)
-        else:
-            file.write(raw_object)
 
 def _aws_unpack(inthing):
     """ AWS Does some weirdness like escaping quotes in the payload which confuses json.
@@ -105,11 +90,11 @@ def lambda_handler(event, _context):
     try:
         payload = list(_generate_magic_keys(my_json))
         _process_values(payload)
-        _archive_raw(my_json, '.json')
+        archive_raw(my_json, '.json')
     except Exception as error:  # pylint: disable=broad-except
         log.error("JSON load failed with error: %s", str(error))
         try:
-            _archive_raw(my_json, '.error')
+            archive_raw(my_json, '.error')
         except Exception as archive_error:  # pylint: disable=broad-except
             log.error("Failed to archive file: %s", str(archive_error))
         status_code = 500

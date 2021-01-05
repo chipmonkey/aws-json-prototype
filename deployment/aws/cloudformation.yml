@@ -9,6 +9,23 @@ Resources:
     Properties:
       BucketName: !Sub ${S3BucketName}-json
 
+  JSONArchivePolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      LambdaExecutionRole
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action:
+            - s3:PutObject
+            - s3:PutObjectAcl
+          Effect: Allow
+          Resource: !Join [ '', [!GetAtt JSONArchive.Arn, '/*' ] ]
+          Principal:
+            AWS: !GetAtt LambdaExecutionRole.Arn
+      Bucket: !Ref JSONArchive
+
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -30,6 +47,7 @@ Resources:
             Action:
             - logs:*
             Resource: arn:aws:logs:*:*:*
+
 # AWSLambdaBasicExecutionRole
     
   ApiGatewayExecutionRole:
@@ -87,7 +105,7 @@ Resources:
       IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JSONLambda.Arn}/invocations"
       CredentialsArn: !GetAtt ApiGatewayExecutionRole.Arn
 
-  # AWS::Lambda::Permission needed?  Using IAM for now.
+  # AWS::Lambda::Permission needed?  Using IAM for now, which works.
 
   JSONApiRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -113,10 +131,16 @@ Resources:
 
   JSONApiDefaultStage:
     Type: AWS::ApiGatewayV2::Stage
+    DependsOn:
+      - JSONApiLogGroup
     Properties:
       DeploymentId: !Ref JSONApiDeployment
       ApiId: !Ref JSONApi
       StageName: "$default"
+      AccessLogSettings:
+        DestinationArn: !GetAtt JSONApiLogGroup.Arn
+        Format: '$context.identity.sourceIp - - $context.requestTime - $context.httpMethod $context.routeKey $context.protocol - $context.status $context.responseLength $context.requestId $context.integrationErrorMessage'
+
 
 # Logging
 
