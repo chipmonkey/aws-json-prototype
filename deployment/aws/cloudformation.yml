@@ -129,6 +129,7 @@ Resources:
   JSONLambda:
     Type: AWS::Lambda::Function
     Properties:
+      Name: JSONLambda
       Handler: parser.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: python3.8
@@ -219,7 +220,7 @@ Resources:
       DatabaseName: !Ref JSONGlueDatabase
       Targets:
         S3Targets:
-          - Path: !Ref JSONArchive
+          - Path: !Join [ '', [ !Ref JSONArchive, '/parsed/' ] ]
             Exclusions:
               - '**.error'
       Configuration: "{\"Version\": 1.0,\"CrawlerOutput\":{\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
