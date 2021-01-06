@@ -11,7 +11,8 @@ help:
 	@echo "'make init' to set up environment dependencies"
 	@echo "'make build' to, um, build"
 	@echo "'make test' to run tests"
-	@echo "'make deploy' to deploy to AWS"
+	@echo "'make deploy' to WIPE and re-deploy to AWS (will fail if S3 is not empty)"
+	@echo "'make deploy-update' for non-destructive subsequent deploys" 
 
 TARGETS = generator parser
 # the sets of directories to do various things in
@@ -54,3 +55,7 @@ config: apt
 deploy:
 	( cd ./parser && $(MAKE) deploy-aws )
 	( cd ./deployment/aws && ./deploy.sh )
+
+deploy-update:
+	( cd ./parser && $(MAKE) deploy-aws )
+	( cd ./deployment/aws && ./updatestack.sh )
