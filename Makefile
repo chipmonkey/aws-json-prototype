@@ -1,7 +1,6 @@
 SHELL := /bin/bash
 # Top level Makefile
 # list python targets in TARGETS
-# supports 'make test' and 'make clean' targets
 # Thanks https://lackof.org/taggart/hacking/make-example/
 
 help:
@@ -11,8 +10,9 @@ help:
 	@echo "'make init' to set up environment dependencies"
 	@echo "'make build' to, um, build"
 	@echo "'make test' to run tests"
-	@echo "'make deploy' to WIPE and re-deploy to AWS (will fail if S3 is not empty)"
-	@echo "'make deploy-update' for non-destructive subsequent deploys" 
+	@echo "'make deploy' deploy to AWS (will fail if stack exists)"
+	@echo "'make update' for non-destructive subsequent deploys" 
+	@echo "'make wipe' to delete stack from AWS (will fail if S3 not empty)" 
 
 TARGETS = generator parser
 # the sets of directories to do various things in
@@ -52,10 +52,14 @@ apt:
 config: apt
 	@./configure.sh
 
+wipe:
+	( cd ./parser && $(MAKE) deploy-aws )
+	( cd ./deployment/aws && ./wipe_stack.sh )
+
 deploy:
 	( cd ./parser && $(MAKE) deploy-aws )
-	( cd ./deployment/aws && ./deploy.sh )
+	( cd ./deployment/aws && ./deploy_stack.sh )
 
-deploy-update:
+update:
 	( cd ./parser && $(MAKE) deploy-aws )
-	( cd ./deployment/aws && ./updatestack.sh )
+	( cd ./deployment/aws && ./update_stack.sh )

@@ -27,6 +27,11 @@ def test_aws_unpack_bad():
     result = parser._aws_unpack('babbadook')
     assert result == 'babbadook'
 
+@patch('parser.parser.archive_raw')
+def test_process_values(mock_archive):
+    parser._process_values([{"first_name": "chip"}])
+    print("huh: ", mock_archive.call_args)
+    mock_archive.assert_called_once_with({'first_name': 'chip'}, '.json', 'parsed/')
 
 def test_cli_parse_success():
     runner = CliRunner()
