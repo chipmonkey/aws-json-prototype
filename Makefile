@@ -4,8 +4,9 @@ SHELL := /bin/bash
 # list python targets in TARGETS
 # Thanks https://lackof.org/taggart/hacking/make-example/
 
-include myconfig
-export $(shell sed 's/=.*//' myconfig)
+# Ignore errors incase config has not yet been run
+
+-include myconfig && export $(shell sed 's/=.*//' myconfig)
 
 help:
 	@echo "Requires make, which, since you see this, you probably have"
@@ -57,7 +58,6 @@ config: apt
 	@./configure.sh
 
 wipe:
-	( cd ./parser && $(MAKE) deploy-aws )
 	( cd ./deployment/aws && ./wipe_stack.sh )
 
 deploy:

@@ -9,6 +9,7 @@ Usage: python parser.py --help
 import json
 import logging
 import sys
+import uuid
 
 import click
 
@@ -43,17 +44,17 @@ def _generate_magic_keys(my_dict):
                 for rvalue in _generate_magic_keys(listitem):
                     yield rvalue
 
-def _process_values(my_list):
+def _process_values(transaction_id, my_list):
     """Placeholder for doing things like writing to a database
     For now, just place parsed values in an s3 bucket
     """
     log.info("Processing values")
 
-    my_dict = {}
+    my_dict = { 'transaction_id': transaction_id }
     for item in my_list:
         my_dict.update(item)
 
-    archive_raw(my_dict, '.json', 'parsed/')
+    archive_raw(my_dict, transaction_id, '.json', 'parsed/')
 
 def _aws_unpack(inthing):
     """ Since the API already encodes the payload, the JSON string is double escaped.
@@ -76,6 +77,8 @@ def lambda_handler(event, _context):
     Archives the raw JSON
     """
 
+    transaction_id = str(uuid.uuid4())
+
     if isinstance(event, dict):
         if 'body' in event:
             my_json = _aws_unpack(event['body'])
@@ -86,27 +89,16 @@ def lambda_handler(event, _context):
 
     log.info("processing: %s (of type: %s)", my_json, type(my_json))
 
-    # Leaving this commented for future reference if we use Kinesis:
-    # Kinesis example
-    # via https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis-create-package.html
-    # import base64
-    # Kinesis data is base64 encoded so decode here
-    # if 'kinesis' in record:
-    #     my_json = base64.b64decode(record["kinesis"]["data"])
-    #     print("Decoded payload: " + str(payload))
-    # else:
-    #     my_json = record
-
     status_code = 200
 
     try:
         payload = list(_generate_magic_keys(my_json))
-        _process_values(payload)
-        archive_raw(my_json, '.json', 'raw/')
+        _process_values(transaction_id, payload)
+        archive_raw(my_json, transaction_id, '.json', 'raw/')
     except Exception as error:  # pylint: disable=broad-except
         log.error("JSON load failed with error: %s", str(error))
         try:
-            archive_raw(my_json, '.error', 'error/')
+            archive_raw(my_json, transaction_id, '.error', 'error/')
         except Exception as archive_error:  # pylint: disable=broad-except
             log.error("Failed to archive file: %s", str(archive_error))
         status_code = 500
