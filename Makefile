@@ -1,7 +1,11 @@
+#!make
 SHELL := /bin/bash
 # Top level Makefile
 # list python targets in TARGETS
 # Thanks https://lackof.org/taggart/hacking/make-example/
+
+include myconfig
+export $(shell sed 's/=.*//' myconfig)
 
 help:
 	@echo "Requires make, which, since you see this, you probably have"
@@ -63,3 +67,4 @@ deploy:
 update:
 	( cd ./parser && $(MAKE) deploy-aws )
 	( cd ./deployment/aws && ./update_stack.sh )
+

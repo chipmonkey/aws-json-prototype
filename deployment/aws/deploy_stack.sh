@@ -8,9 +8,9 @@ aws cloudformation validate-template --template-body file://cloudformation.yml
 
 set +e
 if aws cloudformation deploy --template-file ./cloudformation.yml --stack-name monkeyStack --capabilities CAPABILITY_IAM \
-    --parameter-overrides S3BucketName=chipmonkey.json
+    --parameter-overrides S3BucketName=$S3BUCKET
 then
 aws cloudformation describe-stacks --stack-name monkeyStack
 else
-aws cloudformation describe-stack-events --stack-name monkeyStack
+aws cloudformation describe-stack-events --stack-name monkeyStack | grep -B 8 -A 4 FAILED
 fi

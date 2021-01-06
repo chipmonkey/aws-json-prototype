@@ -28,12 +28,12 @@ echo "Configuring AWS S3 Options"
 thing=true
 while $thing
 do
-    read -p "Enter a valid S3 Bucket Name for JSON and Code storage [chipmonkey.json]: " s3bucket
-    s3bucket=${s3bucket:-chipmonkey.json}
-    echo "name is: $s3bucket"
-    # if [[ $s3bucket =~ (?=^.{3,63}$)(?!^(\d+\.)+\d+$)(^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$) ]]
+    read -p "Enter a valid S3 Bucket Name for JSON and Code storage [chipmonkey.json]: " S3BUCKET
+    S3BUCKET=${S3BUCKET:-chipmonkey.json}
+    echo "name is: $S3BUCKET"
+    # if [[ $S3BUCKET=~ (?=^.{3,63}$)(?!^(\d+\.)+\d+$)(^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$) ]]
     # see https://stackoverflow.com/questions/50480924/regex-for-s3-bucket-name
-    if [[ $s3bucket =~ ^([0-9a-z.-]){3,63}$ ]]
+    if [[ $S3BUCKET =~ ^([0-9a-z.-]){3,63}$ ]]
     then
         echo "Works for me"
         thing=false
@@ -45,5 +45,5 @@ do
     fi
 done
 
-echo "s3bucket=$s3bucket" > myconfig
-aws s3 mb s3://$s3bucket
+echo "S3BUCKET=$S3BUCKET" > myconfig
+aws s3 mb s3://$S3BUCKET
