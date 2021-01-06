@@ -32,7 +32,7 @@ def _generate_filename(suffix, fullpath=True):
     return rvalue
 
 
-def _archive_s3(raw_object, suffix):
+def _archive_s3(raw_object, suffix, prefix):
     """Archive a file to an s3 bucket
     """
 
@@ -41,7 +41,7 @@ def _archive_s3(raw_object, suffix):
 
     body = json.dumps(raw_object)
     client = boto3.client('s3')
-    filename = _generate_filename(suffix, False)
+    filename = prefix + _generate_filename(suffix, False)
     client.put_object(Body=body, Bucket=BUCKET_NAME, Key=filename)
 
 
@@ -57,12 +57,12 @@ def _archive_local(raw_object, suffix):
             file.write(raw_object)
 
 
-def archive_raw(raw_object, suffix):
+def archive_raw(raw_object, suffix, prefix = ''):
     """ Archive raw_object input data to an archive file ending in suffix
     this is the public interface which chooses between filesystems
     """
 
     if FILE_MODE == 'S3':
-        _archive_s3(raw_object, suffix)
+        _archive_s3(raw_object, suffix, prefix)
     else:
         _archive_local(raw_object, suffix)

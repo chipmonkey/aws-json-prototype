@@ -8,14 +8,15 @@ Usage: python parser.py --help
 
 import json
 import logging
-import os
 import sys
 
 import click
 
-if 'AWS_REGION' in os.environ:
+# This import has to work in pytest, when using the cli, and in AWS
+# if 'AWS_REGION' in os.environ:
+try:
     from archiver import archive_raw  # pylint: disable=import-error
-else:
+except Exception:  # pylint: disable=broad-except
     from .archiver import archive_raw
 
 
@@ -42,18 +43,29 @@ def _generate_magic_keys(my_dict):
                 for rvalue in _generate_magic_keys(listitem):
                     yield rvalue
 
-def _process_values(my_dict):
+def _process_values(my_list):
     """Placeholder for doing things like writing to a database
+    For now, just place parsed values in an s3 bucket
     """
     log.info("Processing values")
-    log.info(my_dict)
+
+    my_dict = {}
+    for item in my_list:
+        my_dict.update(item)
+
+    archive_raw(my_dict, '.json', 'parsed/')
 
 def _aws_unpack(inthing):
-    """ AWS Does some weirdness like escaping quotes in the payload which confuses json.
-    Make uniform all AWS specific pre-processing here.
+    """ Since the API already encodes the payload, the JSON string is double escaped.
+    Fix that weirdness and do any other AWS pre-processing here.
     If we wanted to make this cross platform, we could implement a google or azure version as well.
     """
-    return inthing
+    try:
+        rvalue = json.loads(inthing)
+    except Exception:  # pylint: disable=broad-except
+        rvalue = inthing
+
+    return rvalue
 
 
 def lambda_handler(event, _context):
@@ -90,11 +102,11 @@ def lambda_handler(event, _context):
     try:
         payload = list(_generate_magic_keys(my_json))
         _process_values(payload)
-        archive_raw(my_json, '.json')
+        archive_raw(my_json, '.json', 'raw/')
     except Exception as error:  # pylint: disable=broad-except
         log.error("JSON load failed with error: %s", str(error))
         try:
-            archive_raw(my_json, '.error')
+            archive_raw(my_json, '.error', 'error/')
         except Exception as archive_error:  # pylint: disable=broad-except
             log.error("Failed to archive file: %s", str(archive_error))
         status_code = 500
