@@ -4,6 +4,8 @@ Parameters:
 
 Resources:
 
+  # S3 Bucket:
+
   JSONArchive:
     Type: AWS::S3::Bucket
     Properties:
@@ -26,6 +28,9 @@ Resources:
             AWS: !GetAtt LambdaExecutionRole.Arn
       Bucket: !Ref JSONArchive
 
+# IAM Roles:
+
+  # AWS::Lambda::Permission needed?  Using IAM for now, which works.
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -47,8 +52,6 @@ Resources:
             Action:
             - logs:*
             Resource: arn:aws:logs:*:*:*
-
-# AWSLambdaBasicExecutionRole
     
   ApiGatewayExecutionRole:
     Type: AWS::IAM::Role
@@ -72,6 +75,57 @@ Resources:
                 Action: "lambda:*"
                 Resource: !GetAtt JSONLambda.Arn
 
+  GlueRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - glue.amazonaws.com
+            Action:
+            - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: JSONArchiveAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "glue:*"
+                  - "s3:GetBucketLocation"
+                  - "s3:ListBucket"
+                  - "s3:ListAllMyBuckets"
+                  - "s3:GetBucketAcl"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource:
+                  - !GetAtt JSONArchive.Arn
+                  - !Join [ "", [ !GetAtt JSONArchive.Arn, "/*"] ]
+                  - "arn:aws:s3:::aws-glue-*/*"
+                  - "arn:aws:s3:::*/*aws-glue-*/*"
+              - Effect: "Allow"
+                Action:
+                  - "logs:PutLogEvents"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:DescribeLogStreams"
+                Resource: "arn:aws:logs:*:*:/aws-glue/*"
+              - Effect: "Allow"
+                Action:
+                  - "glue:*"
+                Resource: "arn:aws:glue:*:*:*"
+
+# AWS::Lambda
+
   JSONLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -84,6 +138,8 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Sub ${S3BucketName}-json
+
+#  Gateway API
 
   JSONApi:
     Type: AWS::ApiGatewayV2::Api
@@ -104,8 +160,6 @@ Resources:
       PayloadFormatVersion: "2.0"
       IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JSONLambda.Arn}/invocations"
       CredentialsArn: !GetAtt ApiGatewayExecutionRole.Arn
-
-  # AWS::Lambda::Permission needed?  Using IAM for now, which works.
 
   JSONApiRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -141,7 +195,6 @@ Resources:
         DestinationArn: !GetAtt JSONApiLogGroup.Arn
         Format: '$context.identity.sourceIp - - $context.requestTime - $context.httpMethod $context.routeKey $context.protocol - $context.status $context.responseLength $context.requestId $context.integrationErrorMessage'
 
-
 # Logging
 
   JSONApiLogGroup:
@@ -149,3 +202,37 @@ Resources:
     Properties: 
       LogGroupName: JSONApiLogGroup
       RetentionInDays: 90
+
+# Glue
+
+  JSONGlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: jsongluedatabase
+
+  JSONGlueCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Role: !GetAtt GlueRole.Arn
+      DatabaseName: !Ref JSONGlueDatabase
+      Targets:
+        S3Targets:
+          - Path: !Ref JSONArchive
+            Exclusions:
+              - '**.error'
+      Configuration: "{\"Version\": 1.0,\"CrawlerOutput\":{\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
+      SchemaChangePolicy:
+        UpdateBehavior: UPDATE_IN_DATABASE
+        DeleteBehavior: LOG
+      Schedule:
+        ScheduleExpression: cron(0 0 * * ? *)
+
+
+# Outputs:
+Outputs:
+  JSONApiUrl:
+    Description: "JSON API URL"
+    Value: !Sub "https://${JSONApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    # Value: !Ref JSONApi

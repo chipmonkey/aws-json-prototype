@@ -53,7 +53,12 @@ def _aws_unpack(inthing):
     Make uniform all AWS specific pre-processing here.
     If we wanted to make this cross platform, we could implement a google or azure version as well.
     """
-    return inthing
+    try:
+        rvalue = json.loads(inthing)
+    except Exception:  # pylint: disable=broad-except
+        rvalue = inthing
+
+    return rvalue
 
 
 def lambda_handler(event, _context):
