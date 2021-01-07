@@ -29,9 +29,9 @@ def test_aws_unpack_bad():
 
 @patch('parser.parser.archive_raw')
 def test_process_values(mock_archive):
-    parser._process_values([{"first_name": "chip"}])
+    parser._process_values([{"first_name": "chip"}], '1234')
     print("huh: ", mock_archive.call_args)
-    mock_archive.assert_called_once_with({'first_name': 'chip'}, '.json', 'parsed/')
+    mock_archive.assert_called_once_with({'first_name': 'chip'}, '1234', '.json', 'parsed/')
 
 def test_cli_parse_success():
     runner = CliRunner()
