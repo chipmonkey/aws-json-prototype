@@ -1,3 +1,4 @@
+#!make
 SHELL := /bin/bash
 # Top level Makefile
 # list python targets in TARGETS

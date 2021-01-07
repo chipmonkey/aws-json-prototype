@@ -1,5 +1,7 @@
 .PHONY: init help test reqs build
 
+S3BUCKET ?= default.s3.bucket
+
 objects = $(wildcard *.in)
 outputs := $(objects:.in=.txt)
 
@@ -79,7 +81,7 @@ build: install
 	zip -g ../build/lambda_deployfile.zip *.py )
 
 deploy-aws:
-	aws s3 cp ./build/lambda_deployfile.zip s3://chipmonkey.json/
+	aws s3 cp ./build/lambda_deployfile.zip s3://$(S3BUCKET)/
 
 clean-aws:
 	aws lambda delete-function --function-name chipmonkeyTestLambda
