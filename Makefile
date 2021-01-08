@@ -4,6 +4,8 @@ SHELL := /bin/bash
 # list python targets in TARGETS
 # Thanks https://lackof.org/taggart/hacking/make-example/
 
+-include myconfig && export $(shell sed 's/=.*//' myconfig)
+
 help:
 	@echo "Requires make, which, since you see this, you probably have"
 	@echo ""
@@ -57,7 +59,7 @@ wipe:
 	( cd ./parser && $(MAKE) deploy-aws )
 	( cd ./deployment/aws && ./wipe_stack.sh )
 
-deploy:
+deploy: build
 	( cd ./parser && $(MAKE) deploy-aws )
 	( cd ./deployment/aws && ./deploy_stack.sh )
 
