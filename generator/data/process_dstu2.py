@@ -28,8 +28,8 @@ def enhance_json(directory, filename, osm_data):
 
     # Parse Address
     address = patient['address'][0]
-    latitude = [x['valueDecimal'] for x in address['extension'][0]['extension'] if x['url'] == 'latitude']
-    longitude = [x['valueDecimal'] for x in address['extension'][0]['extension'] if x['url'] == 'longitude']
+    latitude = [x['valueDecimal'] for x in address['extension'][0]['extension'] if x['url'] == 'latitude'][0]
+    longitude = [x['valueDecimal'] for x in address['extension'][0]['extension'] if x['url'] == 'longitude'][0]
 
     print(f"osm_data: {osm_data}")
     location = osm_data[0][2]  # location

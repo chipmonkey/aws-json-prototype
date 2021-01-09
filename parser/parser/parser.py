@@ -32,6 +32,8 @@ def _generate_magic_keys(my_dict):
 
     if isinstance(my_dict, str):
         my_dict = json.loads(my_dict)
+    if isinstance(my_dict, float):
+        return
 
     for my_key, my_value in my_dict.items():
         if my_key in search_keys and isinstance(my_value, str):

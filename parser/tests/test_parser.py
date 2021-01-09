@@ -73,6 +73,14 @@ def test_cli_parse_aws_format():
     result = runner.invoke(parser.parse, ['-f', test_file])
     assert result.exit_code == 0
 
+def test_cli_parse_float_field():
+    runner = CliRunner()
+    test_folder = os.path.dirname(os.path.abspath(__file__))
+    test_file = test_folder + '/float_sample.json'
+    print(f"testing with test file: {test_file}")
+    result = runner.invoke(parser.parse, ['-f', test_file])
+    assert result.exit_code == 0
+
 def test_cli_parse_stdin():
     runner = CliRunner()
     result = runner.invoke(parser.parse, input='{"middle_name": "happy"}')
