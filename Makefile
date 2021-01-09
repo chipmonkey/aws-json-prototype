@@ -4,6 +4,8 @@ SHELL := /bin/bash
 # list python targets in TARGETS
 # Thanks https://lackof.org/taggart/hacking/make-example/
 
+.EXPORT_ALL_VARIABLES:
+
 -include myconfig && export $(shell sed 's/=.*//' myconfig)
 
 help:

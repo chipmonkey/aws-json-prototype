@@ -129,7 +129,6 @@ Resources:
   JSONLambda:
     Type: AWS::Lambda::Function
     Properties:
-      Name: JSONLambda
       Handler: parser.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: python3.8
